@@ -1,0 +1,40 @@
+{
+  "searchBox": {
+    "type": "id",
+    "value": "search-input"
+  },
+  "searchButton": {
+    "type": "xpath",
+    "value": "//i[@data-testid='search-icon']"
+  },
+
+  "firstProduct": {
+    "type": "xpath",
+    "value": "//div[@class='prdct-cntnr-wrppr']/div[1]"
+  },
+  "firstProductTitle": {
+    "type": "xpath",
+    "value": "//div[@class='product-title']/a"
+  },
+  "loginButton": {
+    "type": "className",
+    "value": "link account-user"
+  },
+  "logo": {
+    "type": "xpath",
+    "value": "//a[@id='logo']"
+  },
+  "kapat": {
+    "type": "xpath",
+    "value": "//div[@class='modal-close']"
+  },
+  "mainsearchBox": {
+    "type": "xpath",
+    "value": "//input[@data-testid='suggestion']"
+  },
+  "loginButton1": {
+    "type": "xpath",
+    "value": "//*[@id=\"account-navigation-container\"]/div/div[1]/div[1]/p"
+  }
+
+}

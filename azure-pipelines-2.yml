@@ -1,0 +1,80 @@
+pool:
+  name: 'testautomationagent'
+
+steps:
+- task: NodeTool@0
+  inputs:
+    versionSpec: '12.x'
+
+- powershell: |
+    echo installing gauge
+    npm install -g @getgauge/cli
+  displayName: 'install gauge'
+
+# Maven kurulumu ve bağımlılıkların indirilmesi
+- task: Maven@4
+  inputs:
+    goals: 'clean install'
+    options: '-DskipTests'
+    mavenPomFile: 'pom.xml'
+    javaHomeOption: 'JDKVersion'
+    jdkVersionOption: '1.21'
+  displayName: 'Install Maven Dependencies'
+
+- powershell: |
+    echo downloading chromedriver
+    $chromeDriverZip = "$(System.DefaultWorkingDirectory)\chromedriver.zip"
+    Invoke-WebRequest -Uri https://storage.googleapis.com/chrome-for-testing-public/128.0.6609.0/win64/chromedriver-win64.zip -OutFile $chromeDriverZip
+    if (Test-Path $chromeDriverZip) {
+        echo "Unzipping chromedriver"
+        $unzipPath = "$(System.DefaultWorkingDirectory)\chromedriver"
+        Expand-Archive -Path $chromeDriverZip -DestinationPath $unzipPath -Force
+        
+        $chromeDriverDir = Get-ChildItem -Path $unzipPath -Directory | Where-Object { $_.Name -match "chromedriver-win64" }
+        if (-Not $chromeDriverDir) {
+            Write-Error "The directory for chromedriver was not found."
+            exit 1
+        }
+
+        $chromeDriverPath = Join-Path -Path $chromeDriverDir.FullName -ChildPath 'chromedriver.exe'
+        if (-Not (Test-Path $chromeDriverPath)) {
+            Write-Error "chromedriver.exe was not found in the unzipped directory."
+            exit 1
+        }
+
+        $destinationDir = "$(System.DefaultWorkingDirectory)\chromedriver"
+        if (-Not (Test-Path $destinationDir)) {
+            New-Item -ItemType Directory -Force -Path $destinationDir
+        }
+        
+        if (-Not (Test-Path "$destinationDir\chromedriver.exe")) {
+            Copy-Item -Path $chromeDriverPath -Destination "$destinationDir\chromedriver.exe"
+        } else {
+            echo "chromedriver.exe already exists, skipping copy"
+        }
+    } else {
+        Write-Error "ChromeDriver zip file was not downloaded correctly."
+    }
+  displayName: 'Download and setup ChromeDriver'
+
+- powershell: |
+    echo starting gauge test
+    gauge run --tags single specs
+  displayName: 'gauge test'
+
+# Eğer rapor oluşturuluyorsa raporları doğru klasöre kopyalayalım
+- powershell: |
+    if (Test-Path '$(System.DefaultWorkingDirectory)/reports') {
+      echo copying test reports
+      Copy-Item -Path '$(System.DefaultWorkingDirectory)/reports' -Destination '$(Build.ArtifactStagingDirectory)/reports' -Recurse
+    } else {
+      echo "No reports found to copy."
+      exit 0
+    }
+  displayName: 'copy test reports'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)/reports'
+    ArtifactName: 'test-reports'
+  displayName: 'Publish test reports'

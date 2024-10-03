@@ -1,0 +1,18 @@
+pool:
+  name: 'testautomationagent'
+steps:
+-   task: NodeTool@0
+    inputs:
+        versionSpec: '12.x'
+
+-   powershell: |
+        echo installing gauge
+        npm install -g @getgauge/cli
+    displayName: 'install gauge'
+
+-   powershell: |
+        echo starting gauge test
+        gauge run specs
+        gauge run specs --log-level debug
+    displayName: 'gauge test'
+    

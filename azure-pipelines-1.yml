@@ -1,0 +1,44 @@
+trigger:
+- master
+
+pool:
+  name: 'testautomationagent'  # Agent pool adınızı kullanıyoruz
+
+steps:
+# 1. Maven ile projeyi derlemek ve testleri çalıştırmak
+- task: Maven@4
+  inputs:
+    mavenPomFile: 'pom.xml'
+    mavenOptions: '-Xmx3072m'
+    javaHomeOption: 'JDKVersion'
+    jdkVersionOption: '21'  # JDK sürümünü projenize göre ayarlayın
+    jdkArchitectureOption: 'x64'
+    goals: 'clean verify'
+
+# 2. Gauge CLI yüklemek
+- task: NodeTool@0
+  inputs:
+    versionSpec: '12.x'
+  displayName: 'Install Node.js'
+
+- powershell: |
+    echo installing gauge
+    npm install -g @getgauge/cli
+  displayName: 'Install Gauge'
+
+# 3. Gauge testlerini çalıştırmak
+- powershell: |
+    echo starting gauge test
+    gauge run specs
+  displayName: 'Run Gauge Tests'
+
+# 4. HTML raporlarını (opsiyonel) yayınlamak
+- task: CopyFiles@2
+  inputs:
+    SourceFolder: 'reports/html-report'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'GaugeHtmlReport'
